@@ -21,6 +21,15 @@ def download_audio(query):
         "quiet": True,
         "default_search": "ytsearch1",
         "outtmpl": "song.%(ext)s",
+
+        # 🔥 أهم شي
+        "ffmpeg_location": "/usr/bin",
+
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }],
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -29,37 +38,31 @@ def download_audio(query):
         if "entries" in info:
             info = info["entries"][0]
 
-        return ydl.prepare_filename(info)
+    return "song.mp3"
 
 
 @app.on_message(filters.text & (filters.group | filters.private))
 def music(client, message):
-    if not message.text:
-        return
-
     if message.text.startswith("يوت"):
         query = message.text.replace("يوت", "").strip()
 
         if not query:
-            message.reply("❌ اكتب اسم الأغنية بعد يوت")
-            return
+            return message.reply("❌ اكتب اسم الأغنية")
 
-        msg = message.reply("⏳ عم بحمّل بدون ffmpeg...")
+        msg = message.reply("⏳ عم بحمّل...")
 
         try:
             file = download_audio(query)
 
-            msg.edit("🎧 عم برسل الأغنية...")
+            msg.edit("🎧 عم برسل كـ مشغل صوت...")
 
             message.reply_audio(
                 audio=file,
-                caption=query,
                 title=query,
                 performer="Music Bot"
             )
 
-            if os.path.exists(file):
-                os.remove(file)
+            os.remove(file)
 
         except Exception as e:
             msg.edit(f"❌ خطأ:\n{e}")
