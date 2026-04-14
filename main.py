@@ -9,19 +9,18 @@ app = Client("music_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 
 def download_audio(query):
+    import yt_dlp
+
     ydl_opts = {
-        "format": "bestaudio",
-        "outtmpl": "%(title)s.%(ext)s",
-"format": "bestaudio/best",
-"postprocessors": [{
-    "key": "FFmpegExtractAudio",
-    "preferredcodec": "mp3",
-    "preferredquality": "192",
-}],
+        "format": "bestaudio/best",
+        "outtmpl": "song.%(ext)s",
+        "noplaylist": True,
         "quiet": True,
     }
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([f"ytsearch:{query}"])
+        info = ydl.extract_info(f"ytsearch:{query}", download=True)
+        return ydl.prepare_filename(info["entries"][0])
 
 
 @app.on_message(filters.text & filters.private)
@@ -45,6 +44,7 @@ if not files:
     return
 
 file = max(files, key=os.path.getctime)
+file = download_audio(query)
 message.reply_audio(file, caption=query)
 
 
