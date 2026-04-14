@@ -36,7 +36,15 @@ def music(client, message):
         msg.edit("🎧 ثانيه و تبقى معاك...")
 
         import os
-file = max([f for f in os.listdir() if f.endswith(".mp3")], key=os.path.getctime)
+import os
+
+files = [f for f in os.listdir() if f.endswith(".mp3")]
+
+if not files:
+    message.reply("❌ ما قدرت ألقى الملف، حاول مرة تانية")
+    return
+
+file = max(files, key=os.path.getctime)
 message.reply_audio(file, caption=query)
 
 
