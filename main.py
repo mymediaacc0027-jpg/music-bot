@@ -14,29 +14,32 @@ app = Client(
 )
 
 
-# 🎧 تحميل الصوت من يوتيوب
 def download_audio(query):
     ydl_opts = {
         "format": "bestaudio/best",
-        "outtmpl": "song.%(ext)s",
         "noplaylist": True,
         "quiet": True,
+        "default_search": "ytsearch",
+        "outtmpl": "song.%(ext)s",
+        "nocheckcertificate": True,
+        "geo_bypass": True,
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(f"ytsearch:{query}", download=True)
-        file_path = ydl.prepare_filename(info["entries"][0])
+        info = ydl.extract_info(query, download=True)
 
-    return file_path
+        if "entries" in info:
+            info = info["entries"][0]
+
+        return ydl.prepare_filename(info)
 
 
-# 🎵 أمر التشغيل
-@app.on_message(filters.text & filters.group)
-@app.on_message(filters.text & filters.private)
+@app.on_message(filters.text & (filters.group | filters.private))
 def music(client, message):
-    text = message.text.lower()
+    if not message.text:
+        return
 
-    if text.startswith("يوت"):
+    if message.text.startswith("يوت"):
         query = message.text.replace("يوت", "").strip()
 
         if not query:
@@ -52,10 +55,11 @@ def music(client, message):
 
             message.reply_audio(file, caption=query)
 
-            os.remove(file)
+            if os.path.exists(file):
+                os.remove(file)
 
         except Exception as e:
-            msg.edit(f"❌ صار خطأ: {e}")
+            msg.edit(f"❌ صار خطأ:\n{e}")
 
 
 app.run()
