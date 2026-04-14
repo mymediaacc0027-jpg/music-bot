@@ -1,7 +1,6 @@
 from pyrogram import Client, filters
 import yt_dlp
 import os
-import requests
 
 API_ID = 32854686
 API_HASH = "43575e3f5e3a443256f44fca714ac194"
@@ -15,36 +14,20 @@ app = Client(
 )
 
 
-# 🔥 اختيار Invidious instance (بديل يوتيوب مقاوم للحظر)
-INVIDIOUS = "https://inv.nadeko.net"
-
-
-def get_video(query):
-    url = f"{INVIDIOUS}/api/v1/search?q={query}"
-    r = requests.get(url).json()
-
-    if not r:
-        return None
-
-    for item in r:
-        if item.get("type") == "video":
-            return "https://www.youtube.com/watch?v=" + item["videoId"]
-
-    return None
-
-
-def download_audio(url):
+def download_audio(query):
     ydl_opts = {
         "format": "bestaudio/best",
         "noplaylist": True,
         "quiet": True,
+        "default_search": "ytsearch1",  # أهم تعديل
         "outtmpl": "song.%(ext)s",
         "geo_bypass": True,
         "nocheckcertificate": True,
+        "retries": 5,
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+        info = ydl.extract_info(query, download=True)
 
         if "entries" in info:
             info = info["entries"][0]
@@ -64,26 +47,18 @@ def music(client, message):
             message.reply("❌ اكتب اسم الأغنية بعد يوت")
             return
 
-        msg = message.reply("🔎 عم بدوّر بطريقة احترافية...")
+        msg = message.reply("🎧 عم بدوّر وعم بحمّل...")
 
         try:
-            video_url = get_video(query)
+            file = download_audio(query)
 
-            if not video_url:
-                msg.edit("❌ ما لقيت الأغنية")
-                return
-
-            msg.edit("⬇️ عم بحمّل الصوت...")
-
-            file = download_audio(video_url)
-
-            msg.edit("🎧 عم برسل الأغنية...")
+            msg.edit("📤 عم برسل الأغنية...")
 
             message.reply_audio(
                 audio=file,
                 caption=query,
                 title=query,
-                performer="Pro Music Bot"
+                performer="Music Bot"
             )
 
             os.remove(file)
