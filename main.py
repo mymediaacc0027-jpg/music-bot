@@ -14,7 +14,6 @@ app = Client(
 )
 
 
-# 🎧 تحميل وتحويل إلى mp3 جاهز للتليجرام
 def download_audio(query):
     ydl_opts = {
         "format": "bestaudio/best",
@@ -22,11 +21,6 @@ def download_audio(query):
         "quiet": True,
         "default_search": "ytsearch1",
         "outtmpl": "song.%(ext)s",
-        "postprocessors": [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "192",
-        }],
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -35,10 +29,9 @@ def download_audio(query):
         if "entries" in info:
             info = info["entries"][0]
 
-    return "song.mp3"
+        return ydl.prepare_filename(info)
 
 
-# 🎵 أمر البوت
 @app.on_message(filters.text & (filters.group | filters.private))
 def music(client, message):
     if not message.text:
@@ -51,14 +44,13 @@ def music(client, message):
             message.reply("❌ اكتب اسم الأغنية بعد يوت")
             return
 
-        msg = message.reply("⏳ عم بحمّل الأغنية...")
+        msg = message.reply("⏳ عم بحمّل بدون ffmpeg...")
 
         try:
             file = download_audio(query)
 
-            msg.edit("🎧 عم برسل الأغنية داخل تيليجرام...")
+            msg.edit("🎧 عم برسل الأغنية...")
 
-            # 🔥 هذا هو المهم (مش ملف تنزيل، بل مشغل صوت)
             message.reply_audio(
                 audio=file,
                 caption=query,
