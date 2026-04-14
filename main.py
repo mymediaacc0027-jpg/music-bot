@@ -1,5 +1,6 @@
 from pyrogram import Client, filters
-import requests
+import yt_dlp
+import os
 
 API_ID = 32854686
 API_HASH = "43575e3f5e3a443256f44fca714ac194"
@@ -13,10 +14,22 @@ app = Client(
 )
 
 
-# 🎧 API جاهز (بديل يوتيوب)
-def get_song(query):
-    url = f"https://api.vevioz.com/api/button/mp3/{query}"
-    return url
+def download_audio(query):
+    ydl_opts = {
+        "format": "bestaudio[ext=m4a]/bestaudio/best",
+        "noplaylist": True,
+        "quiet": True,
+        "default_search": "ytsearch1",
+        "outtmpl": "song.%(ext)s",
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(query, download=True)
+
+        if "entries" in info:
+            info = info["entries"][0]
+
+        return ydl.prepare_filename(info)
 
 
 @app.on_message(filters.text & (filters.group | filters.private))
@@ -27,18 +40,21 @@ def music(client, message):
         if not query:
             return message.reply("❌ اكتب اسم الأغنية")
 
-        msg = message.reply("🔎 عم دور...")
+        msg = message.reply("⏳ عم بحمّل...")
 
         try:
-            audio_url = get_song(query)
+            file = download_audio(query)
 
-            msg.edit("🎧 عم برسل الأغنية...")
+            msg.edit("🎧 عم برسل كـ مشغل صوت...")
 
             message.reply_audio(
-                audio=audio_url,
+                audio=file,
                 title=query,
                 performer="Music Bot"
             )
+
+            if os.path.exists(file):
+                os.remove(file)
 
         except Exception as e:
             msg.edit(f"❌ خطأ:\n{e}")
