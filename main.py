@@ -1,6 +1,5 @@
 from pyrogram import Client, filters
-import yt_dlp
-import os
+import requests
 
 API_ID = 32854686
 API_HASH = "43575e3f5e3a443256f44fca714ac194"
@@ -14,25 +13,14 @@ app = Client(
 )
 
 
-def download_audio(query):
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "noplaylist": True,
-        "quiet": True,
-        "default_search": "ytsearch",
-        "outtmpl": "song.%(ext)s",
-        "geo_bypass": True,
-    }
+# 🔎 بحث بسيط (بدون yt-dlp)
+def search_song(query):
+    url = f"https://api.deezer.com/search?q={query}"
+    r = requests.get(url).json()
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=True)
-
-        if "entries" in info:
-            info = info["entries"][0]
-
-        filename = ydl.prepare_filename(info)
-
-    return filename
+    if "data" in r and len(r["data"]) > 0:
+        return r["data"][0]["preview"]  # 30 ثانية mp3
+    return None
 
 
 @app.on_message(filters.text & (filters.group | filters.private))
@@ -47,25 +35,22 @@ def music(client, message):
             message.reply("❌ اكتب اسم الأغنية بعد يوت")
             return
 
-        msg = message.reply("⏳ عم بحمّل الأغنية...")
+        msg = message.reply("⏳ عم بدوّر على الأغنية...")
 
-        try:
-            file = download_audio(query)
+        audio_url = search_song(query)
 
-            msg.edit("🎧 عم برسلها كأغنية داخل تيليجرام...")
+        if not audio_url:
+            msg.edit("❌ ما لقيت الأغنية")
+            return
 
-            # إرسال كأغنية (Audio داخل تيليجرام)
-            message.reply_audio(
-                audio=file,
-                caption=query,
-                title=query,
-                performer="Music Bot"
-            )
+        msg.edit("🎧 عم برسل الأغنية...")
 
-            os.remove(file)
-
-        except Exception as e:
-            msg.edit(f"❌ خطأ:\n{e}")
+        message.reply_audio(
+            audio=audio_url,
+            caption=query,
+            title=query,
+            performer="Music Bot"
+        )
 
 
 app.run()
