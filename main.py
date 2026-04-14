@@ -1,5 +1,6 @@
 from pyrogram import Client, filters
-import requests
+import yt_dlp
+import os
 
 API_ID = 32854686
 API_HASH = "43575e3f5e3a443256f44fca714ac194"
@@ -13,14 +14,30 @@ app = Client(
 )
 
 
-# 🔎 بحث بسيط (بدون yt-dlp)
-def search_song(query):
-    url = f"https://api.deezer.com/search?q={query}"
-    r = requests.get(url).json()
+def download_audio(query):
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "noplaylist": True,
+        "quiet": True,
+        "default_search": "ytsearch",
+        "outtmpl": "song.%(ext)s",
+        "geo_bypass": True,
+        "nocheckcertificate": True,
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }],
+    }
 
-    if "data" in r and len(r["data"]) > 0:
-        return r["data"][0]["preview"]  # 30 ثانية mp3
-    return None
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(query, download=True)
+
+        if "entries" in info:
+            info = info["entries"][0]
+
+        file = ydl.prepare_filename(info)
+        return file
 
 
 @app.on_message(filters.text & (filters.group | filters.private))
@@ -35,22 +52,25 @@ def music(client, message):
             message.reply("❌ اكتب اسم الأغنية بعد يوت")
             return
 
-        msg = message.reply("⏳ عم بدوّر على الأغنية...")
+        msg = message.reply("⏳ عم بحمّل من يوتيوب...")
 
-        audio_url = search_song(query)
+        try:
+            file = download_audio(query)
 
-        if not audio_url:
-            msg.edit("❌ ما لقيت الأغنية")
-            return
+            msg.edit("🎧 عم برسل الأغنية...")
 
-        msg.edit("🎧 عم برسل الأغنية...")
+            message.reply_audio(
+                audio=file,
+                caption=query,
+                title=query,
+                performer="Music Bot"
+            )
 
-        message.reply_audio(
-            audio=audio_url,
-            caption=query,
-            title=query,
-            performer="Music Bot"
-        )
+            if os.path.exists(file):
+                os.remove(file)
+
+        except Exception as e:
+            msg.edit(f"❌ خطأ:\n{e}")
 
 
 app.run()
