@@ -1,16 +1,21 @@
 from pyrogram import Client, filters
 import yt_dlp
+import os
 
 API_ID = 32854686
 API_HASH = "43575e3f5e3a443256f44fca714ac194"
 BOT_TOKEN = "8419311415:AAEcq96mgsGvbXLQt2Bc2fQGtdO6VjmIV6k"
 
-app = Client("music_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client(
+    "music_bot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
+)
 
 
+# 🎧 تحميل الصوت من يوتيوب
 def download_audio(query):
-    import yt_dlp
-
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": "song.%(ext)s",
@@ -20,32 +25,37 @@ def download_audio(query):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(f"ytsearch:{query}", download=True)
-        return ydl.prepare_filename(info["entries"][0])
+        file_path = ydl.prepare_filename(info["entries"][0])
+
+    return file_path
 
 
-@app.on_message(filters.text & filters.private)
+# 🎵 أمر التشغيل
 @app.on_message(filters.text & filters.group)
+@app.on_message(filters.text & filters.private)
 def music(client, message):
-    if message.text.startswith("يوت"):
+    text = message.text.lower()
+
+    if text.startswith("يوت"):
         query = message.text.replace("يوت", "").strip()
-        msg = message.reply("⏳ ثانيه أشوفلك...")
 
-        download_audio(query)
+        if not query:
+            message.reply("❌ اكتب اسم الأغنية بعد يوت")
+            return
 
-        msg.edit("🎧 ثانيه و تبقى معاك...")
+        msg = message.reply("⏳ عم بحمّل الأغنية...")
 
-        import os
-import os
+        try:
+            file = download_audio(query)
 
-files = [f for f in os.listdir() if f.endswith(".mp3")]
+            msg.edit("🎧 تم التحميل، عم أرسل الملف...")
 
-if not files:
-    message.reply("❌ ما قدرت ألقى الملف، حاول مرة تانية")
-    return
+            message.reply_audio(file, caption=query)
 
-file = max(files, key=os.path.getctime)
-file = download_audio(query)
-message.reply_audio(file, caption=query)
+            os.remove(file)
+
+        except Exception as e:
+            msg.edit(f"❌ صار خطأ: {e}")
 
 
 app.run()
