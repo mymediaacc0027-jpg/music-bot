@@ -1,6 +1,5 @@
 from pyrogram import Client, filters
-import yt_dlp
-import os
+import requests
 
 API_ID = 32854686
 API_HASH = "43575e3f5e3a443256f44fca714ac194"
@@ -14,31 +13,10 @@ app = Client(
 )
 
 
-def download_audio(query):
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "noplaylist": True,
-        "quiet": True,
-        "default_search": "ytsearch1",
-        "outtmpl": "song.%(ext)s",
-
-        # 🔥 أهم شي
-        "ffmpeg_location": "/usr/bin",
-
-        "postprocessors": [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "192",
-        }],
-    }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=True)
-
-        if "entries" in info:
-            info = info["entries"][0]
-
-    return "song.mp3"
+# 🎧 API جاهز (بديل يوتيوب)
+def get_song(query):
+    url = f"https://api.vevioz.com/api/button/mp3/{query}"
+    return url
 
 
 @app.on_message(filters.text & (filters.group | filters.private))
@@ -49,20 +27,18 @@ def music(client, message):
         if not query:
             return message.reply("❌ اكتب اسم الأغنية")
 
-        msg = message.reply("⏳ عم بحمّل...")
+        msg = message.reply("🔎 عم دور...")
 
         try:
-            file = download_audio(query)
+            audio_url = get_song(query)
 
-            msg.edit("🎧 عم برسل كـ مشغل صوت...")
+            msg.edit("🎧 عم برسل الأغنية...")
 
             message.reply_audio(
-                audio=file,
+                audio=audio_url,
                 title=query,
                 performer="Music Bot"
             )
-
-            os.remove(file)
 
         except Exception as e:
             msg.edit(f"❌ خطأ:\n{e}")
