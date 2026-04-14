@@ -21,7 +21,6 @@ def download_audio(query):
         "quiet": True,
         "default_search": "ytsearch",
         "outtmpl": "song.%(ext)s",
-        "nocheckcertificate": True,
         "geo_bypass": True,
     }
 
@@ -31,7 +30,9 @@ def download_audio(query):
         if "entries" in info:
             info = info["entries"][0]
 
-        return ydl.prepare_filename(info)
+        filename = ydl.prepare_filename(info)
+
+    return filename
 
 
 @app.on_message(filters.text & (filters.group | filters.private))
@@ -51,15 +52,20 @@ def music(client, message):
         try:
             file = download_audio(query)
 
-            msg.edit("🎧 تم التحميل، عم أرسل الملف...")
+            msg.edit("🎧 عم برسلها كأغنية داخل تيليجرام...")
 
-            message.reply_audio(file, caption=query)
+            # إرسال كأغنية (Audio داخل تيليجرام)
+            message.reply_audio(
+                audio=file,
+                caption=query,
+                title=query,
+                performer="Music Bot"
+            )
 
-            if os.path.exists(file):
-                os.remove(file)
+            os.remove(file)
 
         except Exception as e:
-            msg.edit(f"❌ صار خطأ:\n{e}")
+            msg.edit(f"❌ خطأ:\n{e}")
 
 
 app.run()
