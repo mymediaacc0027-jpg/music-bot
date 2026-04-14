@@ -11,7 +11,13 @@ app = Client("music_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 def download_audio(query):
     ydl_opts = {
         "format": "bestaudio",
-        "outtmpl": "song.%(ext)s",
+        "outtmpl": "%(title)s.%(ext)s",
+"format": "bestaudio/best",
+"postprocessors": [{
+    "key": "FFmpegExtractAudio",
+    "preferredcodec": "mp3",
+    "preferredquality": "192",
+}],
         "quiet": True,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -29,7 +35,9 @@ def music(client, message):
 
         msg.edit("🎧 ثانيه و تبقى معاك...")
 
-        message.reply_audio("song.mp3", caption=query)
+        import os
+file = max([f for f in os.listdir() if f.endswith(".mp3")], key=os.path.getctime)
+message.reply_audio(file, caption=query)
 
 
 app.run()
